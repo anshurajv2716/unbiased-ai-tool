@@ -47,7 +47,7 @@ streamlit run 03_upgraded2p.py
 - ✅ PDF Report Download
 
 ## 👥 Team
-- **Anjani** — Backend + Bias Detection (ECE, 1st Year)
+- **Anjani** — Backend + Bias Detection (ECE, 2nd Year)
 - **Anshu Raj Verma** — Frontend + Integration (ECE, 1st Year)
 
 ## 🏆 Google Solution Challenge 2026
