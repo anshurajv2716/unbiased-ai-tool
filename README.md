@@ -33,8 +33,10 @@ A no-code web tool that allows ANY organization to:
 - scikit-learn (ML Models)
 
 ## 🚀 How to Run
+```bash
 pip install streamlit pandas numpy scikit-learn aif360 matplotlib
 streamlit run 03_upgraded2p.py
+```
 
 ## 📊 Features
 - ✅ 3 Sectors — Job Hiring, Loan Approval, Healthcare
