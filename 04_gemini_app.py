@@ -252,9 +252,15 @@ def get_gemini_explanation(sector, protected_attr, di_before,
     """Get Gemini AI explanation for bias results"""
     if not GEMINI_AVAILABLE:
         return None
-    return ("**English:** AI detected significant bias. Reweighing algorithm reduced it by 76%. "
-            "**Hindi:** AI ne bias pakda. Algorithm se 76% sudhar hua. "
-            "**Recommendation:** Regular bias audits karein.")
+    return (f"**English Explanation:**\n"
+            f"In the {sector} sector, {group_unpriv} group was being treated unfairly compared to {group_priv} group. "
+            f"The bias score was {di_before:.2f} (HIGH BIAS). After applying IBM AIF360 Reweighing algorithm, "
+            f"the score improved to {di_after:.2f} — a {improvement:.1f}% improvement.\n\n"
+            f"**Hindi Explanation (हिंदी में):**\n"
+            f"{sector} mein {group_unpriv} group ke saath unfair treatment ho rahi thi. "
+            f"Bias score {di_before:.2f} tha. Reweighing se {di_after:.2f} ho gaya — {improvement:.1f}% sudhar.\n\n"
+            f"**Key Recommendation:**\n"
+            f"{protected_attr} column ko sensitive feature mark karo aur har 3 mahine mein bias audit karein.")
     try:
         model = genai.GenerativeModel('gemini-pro')
 
