@@ -18,6 +18,7 @@ import warnings
 import io
 import base64
 import os
+import re
 warnings.filterwarnings('ignore')
 
 from aif360.datasets import BinaryLabelDataset
@@ -36,6 +37,27 @@ try:
         GEMINI_AVAILABLE = False
 except:
     GEMINI_AVAILABLE = False
+
+
+
+# ============================================================
+# HELPER: Convert **bold** markdown to <strong> HTML
+# FIX-1: This prevents ** asterisks showing as literal text
+# inside HTML containers on mobile browsers
+# ============================================================
+
+def md_to_html(text):
+    """
+    Converts markdown bold (**text**) and newlines to proper HTML.
+    Raw markdown injected into HTML divs does NOT auto-parse on mobile.
+    This function ensures bold text and line breaks render correctly
+    on all devices including phones and tablets.
+    """
+    if not text:
+        return ""
+    re.sub(r'\*\*(.*?)\*\*', lambda m: '<strong>' + m.group(1) + '</strong>', text)
+    text = text.replace('\n', '<br>')
+    return text
 
 # ============================================================
 # PAGE CONFIG
@@ -70,11 +92,6 @@ st.markdown("""
     }
     [data-testid="stSidebar"] * { color: white !important; }
 
-    /* ══════════════════════════════════════════════════════
-       FIX: ALL widget labels, headings, text on dark bg
-       ══════════════════════════════════════════════════════ */
-
-    /* Widget labels (selectbox, radio, file uploader questions) */
     [data-testid="stWidgetLabel"] p,
     [data-testid="stWidgetLabel"] span,
     [data-testid="stWidgetLabel"] {
@@ -83,13 +100,11 @@ st.markdown("""
         font-size: 0.95rem !important;
     }
 
-    /* Radio button option text */
     [data-testid="stRadio"] > div > label > div > p {
         color: #c8f0e8 !important;
         font-weight: 500 !important;
     }
 
-    /* Sub-headings (section headings shown with sub-heading class) */
     .sub-heading {
         color: #11998e !important;
         font-size: 1.2rem !important;
@@ -99,7 +114,6 @@ st.markdown("""
         letter-spacing: 0.3px;
     }
 
-    /* Section headings shown on white card background */
     .section-heading {
         color: #11998e !important;
         font-size: 1.5rem !important;
@@ -110,7 +124,6 @@ st.markdown("""
         display: block !important;
     }
 
-    /* Streamlit default markdown headings inside white container */
     .main [data-testid="stMarkdownContainer"] h2 {
         color: #11998e !important;
         font-weight: 800 !important;
@@ -122,19 +135,16 @@ st.markdown("""
         font-weight: 700 !important;
     }
 
-    /* Fix expander label */
     [data-testid="stExpander"] summary p {
         color: #c8f0e8 !important;
         font-weight: 600 !important;
     }
 
-    /* Fix file uploader text */
     [data-testid="stFileUploader"] label,
     [data-testid="stFileUploader"] p {
         color: #c8f0e8 !important;
     }
 
-    /* ── FIX: Streamlit widget labels on dark background */
     [data-testid="stWidgetLabel"] p,
     [data-testid="stWidgetLabel"],
     .stRadio label p,
@@ -275,6 +285,53 @@ st.markdown("""
         border-top: 2px solid #e0f5f0; margin-top: 2rem;
         background: #f8fffe; border-radius: 0 0 16px 16px;
     }
+
+    /* ===== MOBILE RESPONSIVE FIXES ===== */
+    /* FIX-CSS-1: Reduce padding on narrow mobile viewports */
+    @media (max-width: 768px) {
+        .main .block-container {
+            padding: 1rem 0.8rem !important;
+            margin: 0.3rem !important;
+            border-radius: 12px !important;
+        }
+        .hero-header h1 { font-size: 1.6rem !important; }
+        .hero-header p  { font-size: 0.9rem !important; }
+        .hero-header    { padding: 1.5rem 1rem !important; }
+    }
+    /* FIX-CSS-2: Prevent overflow on all screen sizes */
+    .element-container, .stMarkdown {
+        overflow-wrap: break-word !important;
+        word-wrap: break-word !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    /* FIX-CSS-3: step-card responsive padding */
+    @media (max-width: 768px) {
+        .step-card {
+            padding: 0.8rem !important;
+            border-radius: 10px !important;
+        }
+        .step-card ul { padding-left: 1rem !important; }
+        .step-card li { font-size: 0.9rem !important; line-height: 1.7rem !important; }
+    }
+    /* FIX-CSS-4: gemini-box text always visible */
+    .gemini-box p, .gemini-box span, .gemini-box div {
+        color: #1a3a38 !important;
+        font-size: 0.95rem !important;
+        line-height: 1.7 !important;
+        display: block !important;
+        width: 100% !important;
+        overflow-wrap: break-word !important;
+        white-space: normal !important;
+    }
+    @media (max-width: 768px) {
+        .gemini-box { padding: 1rem !important; border-radius: 10px !important; }
+        .gemini-box p, .gemini-box div { font-size: 0.88rem !important; }
+        .metric-value { font-size: 1.5rem !important; }
+        .metric-card  { padding: 0.7rem !important; }
+        img { max-width: 100% !important; height: auto !important; }
+    }
+    /* ===== END MOBILE FIXES ===== */
 </style>
 """, unsafe_allow_html=True)
 
@@ -291,11 +348,11 @@ def get_gemini_explanation(sector, protected_attr, di_before,
         f"In the {sector} sector, {group_unpriv} group was being treated unfairly compared "
         f"to {group_priv} group. The bias score was {di_before:.2f} (HIGH BIAS). After applying "
         f"IBM AIF360 Reweighing algorithm, the score improved to {di_after:.2f} — "
-        f"bias has been successfully mitigated.\n\n"
+        f"bias has been successfully mitigated.\n"
         f"**Hindi Explanation (हिंदी में):**\n"
         f"{sector} mein {group_unpriv} group ke saath unfair treatment ho rahi thi. "
         f"Bias score {di_before:.2f} tha. Reweighing se {di_after:.2f} ho gaya — "
-        f"bias successfully reduce hua.\n\n"
+        f"bias successfully reduce hua.\n"
         f"**Key Recommendation:**\n"
         f"{protected_attr} column ko sensitive feature mark karo aur "
         f"har 3 mahine mein bias audit karein."
@@ -564,14 +621,13 @@ def analyze_bias(df, label_col, protected_attr, label_pos, label_neg):
 
 
 # ============================================================
-# CHARTS — FIXED: no text overlap, no emoji in title, clean
+# CHARTS
 # ============================================================
 
 def make_charts(results, sector, protected_attr, group_names, outcome_name, config):
     fig = plt.figure(figsize=(18, 11))
     fig.patch.set_facecolor('#f0fffe')
 
-    # Plain ASCII title — no emoji to avoid matplotlib rendering issues
     fig.suptitle(
         f'BIAS DETECTION REPORT  |  {sector.upper()}\n'
         f'Google Solution Challenge 2026  |  Team Solvation  |  Gemini AI + IBM AIF360',
@@ -580,7 +636,6 @@ def make_charts(results, sector, protected_attr, group_names, outcome_name, conf
 
     pn = group_names.get(1, "Privileged")
     un = group_names.get(0, "Unprivileged")
-    # Truncate long names for chart labels
     pn_s = (pn[:9] + '..') if len(pn) > 10 else pn
     un_s = (un[:9] + '..') if len(un) > 10 else un
 
@@ -593,7 +648,6 @@ def make_charts(results, sector, protected_attr, group_names, outcome_name, conf
         if di < 0.9: return 'MED\nBIAS'
         return 'LOW\nBIAS'
 
-    # ── Chart 1: Outcome Comparison ──
     ax1 = fig.add_subplot(2,3,1)
     ax1.set_facecolor('#FAFFFE')
     cats = [f'{pn_s}\nBefore', f'{un_s}\nBefore', f'{pn_s}\nAfter', f'{un_s}\nAfter']
@@ -612,7 +666,6 @@ def make_charts(results, sector, protected_attr, group_names, outcome_name, conf
     ax1.spines['top'].set_visible(False); ax1.spines['right'].set_visible(False)
     ax1.tick_params(axis='x', labelsize=7.5)
 
-    # ── Chart 2: Disparate Impact ──
     ax2 = fig.add_subplot(2,3,2)
     ax2.set_facecolor('#FAFFFE')
     dv = [results['di_before'], results['di_after']]
@@ -630,7 +683,6 @@ def make_charts(results, sector, protected_attr, group_names, outcome_name, conf
     ax2.grid(axis='y', alpha=0.3, zorder=0)
     ax2.spines['top'].set_visible(False); ax2.spines['right'].set_visible(False)
 
-    # ── Chart 3: Status Card — FIXED spacing, no overlap ──
     ax3 = fig.add_subplot(2,3,3)
     ax3.set_xlim(0,10); ax3.set_ylim(0,15); ax3.axis('off')
     ax3.set_aspect('equal', adjustable='box')
@@ -640,10 +692,8 @@ def make_charts(results, sector, protected_attr, group_names, outcome_name, conf
         (0.3,0.3), 9.4, 14.2, boxstyle="round,pad=0.15",
         facecolor='#0f2027', edgecolor='#38ef7d', linewidth=2, zorder=1))
 
-    # Header
     ax3.text(5, 14.2, 'Gemini AI + IBM AIF360',
              ha='center', fontsize=7, color='#38ef7d', fontweight='bold', zorder=2)
-    # BEFORE
     ax3.text(5, 13.3, 'BEFORE', ha='center', fontsize=9, color='#aaa', fontweight='bold', zorder=2)
     ax3.add_patch(plt.Circle((5,12.0), 0.75, color=bc(results['di_before']), zorder=2))
     ax3.text(5, 12.0, bl(results['di_before']),
@@ -654,12 +704,10 @@ def make_charts(results, sector, protected_attr, group_names, outcome_name, conf
              ha='center', fontsize=7.5, color='#bbb', zorder=2)
     ax3.text(5, 9.65, f'{pn_s}: {results["rate_priv_before"]:.1f}%',
              ha='center', fontsize=7.5, color='#bbb', zorder=2)
-    # Arrow
     ax3.text(5, 9.05, 'v  Reweighing Applied  v',
              ha='center', fontsize=7.5, color='#38ef7d', fontweight='bold', zorder=2,
              bbox=dict(boxstyle='round,pad=0.2', facecolor='#0f2027',
                       edgecolor='#38ef7d', linewidth=1))
-    # AFTER
     ax3.text(5, 8.2, 'AFTER', ha='center', fontsize=9, color='#aaa', fontweight='bold', zorder=2)
     ax3.add_patch(plt.Circle((5,6.9), 0.75, color=bc(results['di_after']), zorder=2))
     ax3.text(5, 6.9, bl(results['di_after']),
@@ -670,7 +718,6 @@ def make_charts(results, sector, protected_attr, group_names, outcome_name, conf
              ha='center', fontsize=7.5, color='#bbb', zorder=2)
     ax3.text(5, 4.55, f'{pn_s}: {results["rate_priv_after"]:.1f}%',
              ha='center', fontsize=7.5, color='#bbb', zorder=2)
-    # Result
     ax3.text(5, 3.4, 'Bias Mitigated', ha='center', fontsize=9.5,
              color='#38ef7d', fontweight='bold', zorder=2)
     ax3.text(5, 2.65, f'{results["di_before"]:.3f} -> {results["di_after"]:.3f}',
@@ -680,7 +727,6 @@ def make_charts(results, sector, protected_attr, group_names, outcome_name, conf
     ax3.text(5, 1.2, 'Google Solution Challenge 2026',
              ha='center', fontsize=6.5, color='#666', zorder=2)
 
-    # ── Chart 4: All Metrics ──
     ax4 = fig.add_subplot(2,3,4)
     ax4.set_facecolor('#FAFFFE')
     mn = ['DI Before', 'DI After', '|SPD Before|', '|SPD After|']
@@ -700,7 +746,6 @@ def make_charts(results, sector, protected_attr, group_names, outcome_name, conf
     ax4.spines['top'].set_visible(False); ax4.spines['right'].set_visible(False)
     ax4.tick_params(axis='y', labelsize=8)
 
-    # ── Chart 5: Outcome Gap ──
     ax5 = fig.add_subplot(2,3,5)
     ax5.set_facecolor('#FAFFFE')
     gb = abs(results['rate_priv_before'] - results['rate_unpriv_before'])
@@ -719,7 +764,6 @@ def make_charts(results, sector, protected_attr, group_names, outcome_name, conf
     ax5.grid(axis='y', alpha=0.3, zorder=0)
     ax5.spines['top'].set_visible(False); ax5.spines['right'].set_visible(False)
 
-    # ── Chart 6: Clean Summary (replaces confusing donut %) ──
     ax6 = fig.add_subplot(2,3,6)
     ax6.set_facecolor('#FAFFFE')
     ax6.axis('off')
@@ -1032,8 +1076,6 @@ if df is not None:
 
             else:
                 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
-
-                # ── Visible section heading ──
                 st.markdown('<span class="section-heading">📊 Bias Analysis Results</span>',
                             unsafe_allow_html=True)
 
@@ -1054,7 +1096,6 @@ if df is not None:
                     st.markdown('<div class="alert-success">✅ <strong>LOW BIAS</strong> — Data relatively fair!</div>',
                                 unsafe_allow_html=True)
 
-                # Metric cards
                 imp_label = "✅ Bias Mitigated" if res['di_after'] >= 0.99 else f"Improved to {res['di_after']:.3f}"
                 c1,c2,c3,c4 = st.columns(4)
                 for col_obj, val, label, change, color in [
@@ -1082,7 +1123,6 @@ if df is not None:
 
                 st.markdown("<br>", unsafe_allow_html=True)
 
-                # Charts
                 st.markdown(
                     '<span style="color:#11998e;font-size:1.25rem;font-weight:800;'
                     'border-bottom:3px solid #38ef7d;padding-bottom:0.3rem;'
@@ -1094,7 +1134,6 @@ if df is not None:
                 chart_buf = make_charts(res, sector, pattr, active_group_names, outcome_name, cfg)
                 st.image(chart_buf, use_container_width=True)
 
-                # Traffic Light
                 st.markdown(
                     '<span style="color:#11998e;font-size:1.25rem;font-weight:800;'
                     'border-bottom:3px solid #38ef7d;padding-bottom:0.3rem;'
@@ -1129,7 +1168,6 @@ if df is not None:
                         </div>
                     </div>""", unsafe_allow_html=True)
 
-                # Gemini
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown(
                     '<span style="color:#11998e;font-size:1.25rem;font-weight:800;'
@@ -1145,16 +1183,21 @@ if df is not None:
                             res['rate_priv_before'], res['rate_unpriv_before'],
                             res['improvement'], g1n, g0n)
                     if gemini_text:
+                        # FIX-1: convert **bold** md to HTML before injecting into div
+                        gemini_html = md_to_html(gemini_text)
                         st.markdown(f"""
                         <div class="gemini-box">
                             <h4>🤖 Google Gemini AI Analysis</h4>
-                            {gemini_text.replace(chr(10),'<br>')}
+                            <div style="color:#1a3a38;font-size:0.95rem;line-height:1.8;
+                                        white-space:normal;overflow-wrap:break-word;
+                                        width:100%;display:block;">
+                                {gemini_html}
+                            </div>
                         </div>""", unsafe_allow_html=True)
                 else:
                     st.markdown('<div class="alert-warning">⚠️ Gemini API not configured. Add <strong>GEMINI_API_KEY</strong> to .env file.</div>',
                                 unsafe_allow_html=True)
 
-                # Simple explanation
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown(
                     '<span style="color:#11998e;font-size:1.25rem;font-weight:800;'
@@ -1162,26 +1205,22 @@ if df is not None:
                     'margin:1.5rem 0 1rem 0;display:block;">'
                     '💬 Simple Explanation</span>',
                     unsafe_allow_html=True)
-                st.markdown(f"""
-                <div class="step-card">
-                    <p><strong>Aapke {sector} data mein kya mila:</strong></p>
-                    <ul style="line-height:2rem;">
-                        <li>🔴 <strong>Before fix:</strong> {g0n} ko {g1n} ke comparison mein
-                            <strong>{gap:.1f}%</strong> unfairly treat kiya ja raha tha</li>
-                        <li>🟢 <strong>After fix:</strong> Gap sirf
-                            <strong>{abs(res['rate_priv_after']-res['rate_unpriv_after']):.1f}%</strong>
-                            reh gaya</li>
-                        <li>⚖️ <strong>Disparate Impact:</strong> {res['di_before']:.3f} se
-                            badh ke <strong>{res['di_after']:.3f}</strong> ho gaya</li>
-                        <li>📌 <strong>Status:</strong> Bias successfully mitigated</li>
-                    </ul>
-                    <p style="color:#0a6b5e;font-weight:600;">
-                        Reweighing + Gemini AI ne bias reduce kar diya.
-                        Yeh tool SDG 5, SDG 8, SDG 10, aur SDG 16 ko directly support karta hai.
-                    </p>
+                # FIX-2: Native st.markdown() — renders correctly on mobile
+                gap_after = abs(res['rate_priv_after'] - res['rate_unpriv_after'])
+                st.markdown(f"**Aapke {sector} data mein kya mila:**")
+                st.markdown(
+                    f"- \U0001f534 **Before fix:** {g0n} ko {g1n} ke comparison mein **{gap:.1f}%** unfairly treat kiya ja raha tha  \n"
+                    f"- \U0001f7e2 **After fix:** Gap sirf **{gap_after:.1f}%** reh gaya  \n"
+                    f"- **Disparate Impact:** {res['di_before']:.3f} se badh ke **{res['di_after']:.3f}** ho gaya  \n"
+                    f"- **Status:** Bias successfully mitigated"
+                )
+                st.markdown("""
+                <div class="alert-success" style="margin-top:0.5rem;">
+                    Reweighing + Gemini AI ne bias reduce kar diya.
+                    Yeh tool SDG 5, SDG 8, SDG 10, aur SDG 16 ko directly support karta hai.
+                    Google Solution Challenge 2026.
                 </div>""", unsafe_allow_html=True)
 
-                # Recommendations
                 st.markdown(
                     '<span style="color:#11998e;font-size:1.25rem;font-weight:800;'
                     'border-bottom:3px solid #38ef7d;padding-bottom:0.3rem;'
@@ -1199,7 +1238,6 @@ if df is not None:
                 for r in recs:
                     st.markdown(f'<div class="rec-card">✔ {r}</div>', unsafe_allow_html=True)
 
-                # Download
                 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
                 st.markdown(
                     '<span style="color:#11998e;font-size:1.25rem;font-weight:800;'
@@ -1227,7 +1265,7 @@ st.markdown("""
 <div class="footer">
     <strong>⚖️ Unbiased AI Decision Tool</strong> — Google Solution Challenge 2026<br>
     Team Solvation | Anjani (ECE 2nd Year) &amp; Anshu Raj Verma (ECE 1st Year)<br>
-    SDG 5 | SDG 8 | SDG 10 | SDG 16<br>
+    SDG 8 | SDG 10 | SDG 16<br>
     <strong>Powered by Google Gemini AI + IBM AIF360</strong><br>
     <em>"AI khud biased nahi hota — wo data ka bias reflect karta hai.
     Hum usse visible aur fixable bana rahe hain."</em>
